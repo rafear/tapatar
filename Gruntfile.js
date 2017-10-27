@@ -35,6 +35,14 @@ module.exports = function(grunt) {
                         flatten: true,
                         filter: 'isFile'
                     },
+                    {
+                        src: 'bower_components/Croppie/croppie.css',
+                        dest: 'demo/croppie.css'
+                    },
+                    {
+                        src: 'bower_components/Croppie/croppie.js',
+                        dest: 'demo/croppie.js'
+                    }
                 ]
             }
         },

@@ -192,45 +192,127 @@ Tptr.sources.gravatar = new Tptr.TapatarSource({
 ;var Tptr = Tptr || {};
 Tptr.sources = Tptr.sources || {};
 Tptr.sources.local = new Tptr.TapatarSource({
-  id: 'local',
-  title: 'local',
-  action: {
-    content: 'Browse',
-    onClick: function(evt) {
-        this.fileInput.click();
-    }
-  },
-  onAdd: function() {
-    var self = this;
-    this.fileInput = $('<input type="file" style="display:none;" accept=".png,.jpeg,.jpg,.gif">');
-    function handleFileSelect(evt) {
-      var files = evt.target.files;
+    id: 'local',
+    title: 'Arquivos',
+    action: {
+        content: 'Browse',
+        onClick: function (evt) {
 
-      for (var i = 0, f; f = files[i]; i++) {
+            this.fileInput.click();
+        }
+    },
+    onAdd: function () {
+        var self = this;
+        this.fileInput = $('<input type="file" style="display:none;" accept=".png,.jpeg,.jpg,.gif">');
 
-        // Only process image files.
-        if (!f.type.match('image.*')) {
-          continue;
+        function handleFileSelect(evt) {
+            var files = evt.target.files;
+
+            for (var i = 0, f; f = files[i]; i++) {
+
+                // Only process image files.
+                if (!f.type.match('image.*')) {
+                    continue;
+                }
+
+                var reader = new FileReader();
+
+                // Closure to capture the file information.
+                reader.onload = (function (theFile) {
+                    return function (e) {
+                        self.setImageData(e.target.result, true);
+                    };
+                })(f);
+
+                // Read in the image file as a data URL.
+                reader.readAsDataURL(f);
+            }
         }
 
-        var reader = new FileReader();
-
-        // Closure to capture the file information.
-        reader.onload = (function(theFile) {
-          return function(e) {
-            self.setImageData(e.target.result, true);
-          };
-        })(f);
-
-        // Read in the image file as a data URL.
-        reader.readAsDataURL(f);
-      }
-    }
-
-    self.fileInput.on('change', handleFileSelect);
-  },
+        self.fileInput.on('change', handleFileSelect);
+    },
 });
-;;(function ($, window, document, undefined ) {
+;https://davidwalsh.name/browser-camera
+
+var Tptr = Tptr || {};
+Tptr.sources = Tptr.sources || {};
+Tptr.sources.webcam = new Tptr.TapatarSource({
+    id: 'webcam',
+    title: 'Tirar Foto',
+    action: {
+        content: 'Take Photo',
+        onClick: function(evt) {
+            if($('.tptr-webcam').length < 1) {
+                $('.tptr-overlay').append(this.layout);
+                $('.tptr-webcam').on('click', '.tptr-close', this.close);
+            }
+            this.open();
+
+        }
+    },
+    onAdd: function() {
+        this.layout = "<div class='tptr-window tptr-webcam' style='display: none'>\n" +
+            "    <div class='tptr-close'></div>\n" +
+            "    <div class='tptr-box-part'><video class='tptr-source-video' autoplay></video></div>\n" +
+            "    <div class='tptr-sources-holder'><button class='tptr-snap-photo'>Foto</button></div>\n" +
+            "    <div class='tptr-box-part'> \n" +
+            "        <canvas class='tptr-source-canvas' id='canvas'></canvas>\n" +
+            "        <img class='tptr-source-preview'>\n" +
+            "        <button class=\"tptr-choose\">salvar</button>\n" +
+            "    </div>\n" +
+            "</div>";
+
+
+        this.close = function() {
+
+            this.stream.getTracks()[0].stop();
+            $('.tptr-webcam').hide();
+            $('.tptr-picker').show();
+        };
+        this.open = function() {
+            $('.tptr-picker').hide();
+            $('.tptr-webcam').show();
+
+            // Grab elements, create settings, etc.
+            var $video = $('.tptr-source-video');
+            var $canvas = $('.tptr-source-canvas');
+
+            var canvas = document.getElementById('canvas');
+            var context = canvas.getContext('2d');
+            var that = this;
+
+            // Get access to the camera!
+            if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                // Not adding `{ audio: true }` since we only want video now
+                navigator.mediaDevices.getUserMedia({ video: true }).then(function(stream) {
+                    that.stream = stream;
+                    $video.attr('src', window.URL.createObjectURL(stream));
+                    $video[0].play();
+                }).catch(function (e) {
+                    alert("Houve um erro ao iniciar, contate o suporte");
+                });
+
+                $(".tptr-snap-photo").click(function() {
+                    context.drawImage($video[0], 0, 0, canvas.width, canvas.height);
+                    var data = canvas.toDataURL('image/png');
+                    $('.tptr-source-preview').attr('src', data);
+
+                });
+            }
+
+
+            $('.tptr-webcam .tptr-choose').click(function() {
+                that.setImageData( $('.tptr-source-preview').attr('src'), true);
+                //that.stream
+                that.close();
+            });
+        };
+
+
+    }
+});
+;//http://foliotek.github.io/Croppie/#documentation
+;(function ($, window, document, undefined ) {
     "use strict";
 
     window.Tptr = window.Tptr || {};
@@ -239,19 +321,21 @@ Tptr.sources.local = new Tptr.TapatarSource({
         defaults = {
             sources: {
                 local: {enabled: true, order: 1},
-                facebook: {enabled: true, order: 2},
+                webcam: {enabled: true, order: 2},
                 gravatar: {enabled: true, order: 3}
+
             },
             image_url_prefix: 'img/',
             default_image: function() {
-                return this.image_url_prefix + 'default.svg';
+                return this.image_url_prefix + 'avatar.jpg';
             },
             templates: {
                 widget: '<div class="tptr-widget"><span class="tptr-widget-pick">pick</span></div>',
                 overlay: '<div class="tptr-container" style="display: none"><div class="tptr-overlay"></div></div>',
                 picker: '<div class="tptr-picker"><div class="tptr-close"></div><div class="tptr-image-holder tptr-box-part"><div class="tptr-big-image"> </div></div><div class="tptr-sources-holder tptr-box-part"><div class="tptr-sources"></div><button class="tptr-save">Save</button></div></div>',
                 source: '<div class="tptr-source"><div class="tptr-source-part tptr-source-icon"><img /></div><div class="tptr-source-part tptr-source-content"></div><div class="tptr-source-part tptr-source-image-preview"></div><button class="tptr-source-part tptr-source-pick">Pick</button></div>'
-            }
+            },
+            crop: true
         };
 
     function Plugin(element, options) {
@@ -261,6 +345,8 @@ Tptr.sources.local = new Tptr.TapatarSource({
         this._name = pluginName;
         this.sources = [];
         this.pickerActive = false;
+
+        this.cropObject = null;
 
         this.init();
 
@@ -336,7 +422,7 @@ Tptr.sources.local = new Tptr.TapatarSource({
             });
 
             // Register click handler for the save button
-            this.$containerEl.on('click', '.tptr-close', function() {
+            this.$containerEl.on('click', '.tptr-picker .tptr-close', function() {
                 self._closePicker();
             });
 
@@ -351,16 +437,32 @@ Tptr.sources.local = new Tptr.TapatarSource({
         },
         _setPickedImage: function(source) {
             if (!source.image_data) return;
-            this.$containerEl.find('.tptr-image-holder .tptr-big-image').css('background-image', 'url(' + source.image_data + ')');
+            if(this.options.crop === true){
+                this._initCrop(this.$containerEl.find('.tptr-image-holder .tptr-big-image'), source.image_data);
+            } else {
+                this.$containerEl.find('.tptr-image-holder .tptr-big-image')
+                    .addClass('tptr-big-image-without-crop')
+                    .css('background-image', 'url(' + source.image_data + ')');
+            }
+
+
         },
         _popPicker: function() {
             var sources = '';
 
             var $picker = $(this.options.templates.picker);
+
             var imageData = (this.selectedSource)
                                 ? this.sources[this.selectedSource].image_data
                                 : this._getImageFromPathOrFunction(this.options.default_image, this.options);
-            $picker.find('.tptr-big-image').css('background-image', 'url(' + imageData + ')');
+
+            if(this.options.crop === true && this.selectedSource) {
+                this._initCrop($picker.find('.tptr-big-image'), imageData);
+            } else {
+                $picker.find('.tptr-big-image')
+                    .addClass('tptr-big-image-without-crop')
+                    .css('background-image', 'url(' + imageData + ')');
+            }
 
             // Sort sources and append
             var $sourcesHolder = $picker.find('.tptr-sources');
@@ -401,15 +503,25 @@ Tptr.sources.local = new Tptr.TapatarSource({
 
             $el.find('.tptr-source-icon img').attr('src', this._getImageFromPathOrFunction(source.icon, source));
 
-            var $pickEl = $el.find('.tptr-source-pick');
 
+            var $pickAction = $el.find('.tptr-source-pick');
             if (source.action) {
-                $pickEl.html(source.action.content);
+                $pickAction.html(source.action.content);
                 if (source.action.onClick) {
-                    $pickEl.on('click', $.proxy(source.action.onClick, source));
+                    $pickAction.on('click', $.proxy(source.action.onClick, source));
                 }
             } else {
-                $pickEl.prop('disabled');
+                $pickAction.prop('disabled');
+            }
+
+            var $pickCrop = $el.find('.tptr-source-crop');
+            if (source.crop) {
+                $pickCrop.html(source.crop.content);
+                if (source.crop.onClick) {
+                    $pickCrop.on('click', $.proxy(source.crop.onClick, source));
+                }
+            } else {
+                $pickCrop.prop('disabled');
             }
 
             return $el;
@@ -433,14 +545,42 @@ Tptr.sources.local = new Tptr.TapatarSource({
             this._getSourceEl(source).find('.tptr-source-image-preview').html($('<div></div>').css('background-image', 'url(' + source.image_data + ')'));
         },
         _save: function() {
-            if (this.sources[this.selectedSource]) {
-                var imgData = this.sources[this.selectedSource].image_data;
-                $(this.element).val(imgData);
-                this.$tptrEl.find('.tptr-widget').css('background-image', 'url(' + imgData + ')');
-            }
 
-            this._closePicker();
+            if(this.options.crop) {
+                var that = this;
+
+                this.cropObject.croppie('result', 'base64').then(function(imageData) {
+
+                    return imageData;
+                    // html is div (overflow hidden)
+                    // with img positioned inside.
+                }).then(function (imgData) {
+                    if (that.sources[that.selectedSource]) {
+                        $(that.element).val(imgData);
+                        that.$tptrEl.find('.tptr-widget').css('background-image', 'url(' + imgData + ')');
+                        // var imgData = this.sources[this.selectedSource].image_data;
+                    }
+                    that._closePicker();
+                });
+            } else {
+                if (this.sources[this.selectedSource]) {
+                    var imgData = this.sources[this.selectedSource].image_data;
+                    $(this.element).val(imgData);
+                    this.$tptrEl.find('.tptr-widget').css('background-image', 'url(' + imgData + ')');
+                }
+                this._closePicker();
+            }
+        },
+        _initCrop: function($picker, imageData) {
+            $picker.removeClass('tptr-big-image-without-crop').css('background-image', '');
+            if(this.cropObject !== null) {
+                this.cropObject.croppie('destroy');
+            }
+            this.cropObject = $picker.croppie({
+                url: imageData
+            });
         }
+
     };
 
     $.fn[pluginName] = function ( options ) {

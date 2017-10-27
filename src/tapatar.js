@@ -1,3 +1,4 @@
+//http://foliotek.github.io/Croppie/#documentation
 ;(function ($, window, document, undefined ) {
     "use strict";
 
@@ -7,19 +8,21 @@
         defaults = {
             sources: {
                 local: {enabled: true, order: 1},
-                facebook: {enabled: true, order: 2},
+                webcam: {enabled: true, order: 2},
                 gravatar: {enabled: true, order: 3}
+
             },
             image_url_prefix: 'img/',
             default_image: function() {
-                return this.image_url_prefix + 'default.svg';
+                return this.image_url_prefix + 'avatar.jpg';
             },
             templates: {
                 widget: '<div class="tptr-widget"><span class="tptr-widget-pick">pick</span></div>',
                 overlay: '<div class="tptr-container" style="display: none"><div class="tptr-overlay"></div></div>',
                 picker: '<div class="tptr-picker"><div class="tptr-close"></div><div class="tptr-image-holder tptr-box-part"><div class="tptr-big-image"> </div></div><div class="tptr-sources-holder tptr-box-part"><div class="tptr-sources"></div><button class="tptr-save">Save</button></div></div>',
                 source: '<div class="tptr-source"><div class="tptr-source-part tptr-source-icon"><img /></div><div class="tptr-source-part tptr-source-content"></div><div class="tptr-source-part tptr-source-image-preview"></div><button class="tptr-source-part tptr-source-pick">Pick</button></div>'
-            }
+            },
+            crop: true
         };
 
     function Plugin(element, options) {
@@ -29,6 +32,8 @@
         this._name = pluginName;
         this.sources = [];
         this.pickerActive = false;
+
+        this.cropObject = null;
 
         this.init();
 
@@ -104,7 +109,7 @@
             });
 
             // Register click handler for the save button
-            this.$containerEl.on('click', '.tptr-close', function() {
+            this.$containerEl.on('click', '.tptr-picker .tptr-close', function() {
                 self._closePicker();
             });
 
@@ -119,16 +124,32 @@
         },
         _setPickedImage: function(source) {
             if (!source.image_data) return;
-            this.$containerEl.find('.tptr-image-holder .tptr-big-image').css('background-image', 'url(' + source.image_data + ')');
+            if(this.options.crop === true){
+                this._initCrop(this.$containerEl.find('.tptr-image-holder .tptr-big-image'), source.image_data);
+            } else {
+                this.$containerEl.find('.tptr-image-holder .tptr-big-image')
+                    .addClass('tptr-big-image-without-crop')
+                    .css('background-image', 'url(' + source.image_data + ')');
+            }
+
+
         },
         _popPicker: function() {
             var sources = '';
 
             var $picker = $(this.options.templates.picker);
+
             var imageData = (this.selectedSource)
                                 ? this.sources[this.selectedSource].image_data
                                 : this._getImageFromPathOrFunction(this.options.default_image, this.options);
-            $picker.find('.tptr-big-image').css('background-image', 'url(' + imageData + ')');
+
+            if(this.options.crop === true && this.selectedSource) {
+                this._initCrop($picker.find('.tptr-big-image'), imageData);
+            } else {
+                $picker.find('.tptr-big-image')
+                    .addClass('tptr-big-image-without-crop')
+                    .css('background-image', 'url(' + imageData + ')');
+            }
 
             // Sort sources and append
             var $sourcesHolder = $picker.find('.tptr-sources');
@@ -169,15 +190,25 @@
 
             $el.find('.tptr-source-icon img').attr('src', this._getImageFromPathOrFunction(source.icon, source));
 
-            var $pickEl = $el.find('.tptr-source-pick');
 
+            var $pickAction = $el.find('.tptr-source-pick');
             if (source.action) {
-                $pickEl.html(source.action.content);
+                $pickAction.html(source.action.content);
                 if (source.action.onClick) {
-                    $pickEl.on('click', $.proxy(source.action.onClick, source));
+                    $pickAction.on('click', $.proxy(source.action.onClick, source));
                 }
             } else {
-                $pickEl.prop('disabled');
+                $pickAction.prop('disabled');
+            }
+
+            var $pickCrop = $el.find('.tptr-source-crop');
+            if (source.crop) {
+                $pickCrop.html(source.crop.content);
+                if (source.crop.onClick) {
+                    $pickCrop.on('click', $.proxy(source.crop.onClick, source));
+                }
+            } else {
+                $pickCrop.prop('disabled');
             }
 
             return $el;
@@ -201,14 +232,42 @@
             this._getSourceEl(source).find('.tptr-source-image-preview').html($('<div></div>').css('background-image', 'url(' + source.image_data + ')'));
         },
         _save: function() {
-            if (this.sources[this.selectedSource]) {
-                var imgData = this.sources[this.selectedSource].image_data;
-                $(this.element).val(imgData);
-                this.$tptrEl.find('.tptr-widget').css('background-image', 'url(' + imgData + ')');
-            }
 
-            this._closePicker();
+            if(this.options.crop) {
+                var that = this;
+
+                this.cropObject.croppie('result', 'base64').then(function(imageData) {
+
+                    return imageData;
+                    // html is div (overflow hidden)
+                    // with img positioned inside.
+                }).then(function (imgData) {
+                    if (that.sources[that.selectedSource]) {
+                        $(that.element).val(imgData);
+                        that.$tptrEl.find('.tptr-widget').css('background-image', 'url(' + imgData + ')');
+                        // var imgData = this.sources[this.selectedSource].image_data;
+                    }
+                    that._closePicker();
+                });
+            } else {
+                if (this.sources[this.selectedSource]) {
+                    var imgData = this.sources[this.selectedSource].image_data;
+                    $(this.element).val(imgData);
+                    this.$tptrEl.find('.tptr-widget').css('background-image', 'url(' + imgData + ')');
+                }
+                this._closePicker();
+            }
+        },
+        _initCrop: function($picker, imageData) {
+            $picker.removeClass('tptr-big-image-without-crop').css('background-image', '');
+            if(this.cropObject !== null) {
+                this.cropObject.croppie('destroy');
+            }
+            this.cropObject = $picker.croppie({
+                url: imageData
+            });
         }
+
     };
 
     $.fn[pluginName] = function ( options ) {
