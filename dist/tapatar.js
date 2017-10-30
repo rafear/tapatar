@@ -233,30 +233,32 @@ Tptr.sources.local = new Tptr.TapatarSource({
     },
 });
 ;https://davidwalsh.name/browser-camera
-
+var cameraStream;
 var Tptr = Tptr || {};
 Tptr.sources = Tptr.sources || {};
 Tptr.sources.webcam = new Tptr.TapatarSource({
     id: 'webcam',
     title: 'Tirar Foto',
     action: {
-        content: 'Take Photo',
+        content: 'Tirar Foto',
         onClick: function(evt) {
             if($('.tptr-webcam').length < 1) {
                 $('.tptr-overlay').append(this.layout);
                 $('.tptr-webcam').on('click', '.tptr-close', this.close);
             }
+            this.streaming = false;
             this.open();
-
         }
     },
     onAdd: function() {
+        this.width  = 300;
+        this.height = 0;
         this.layout = "<div class='tptr-window tptr-webcam' style='display: none'>\n" +
             "    <div class='tptr-close'></div>\n" +
             "    <div class='tptr-box-part'><video class='tptr-source-video' autoplay></video></div>\n" +
-            "    <div class='tptr-sources-holder'><button class='tptr-snap-photo'>Foto</button></div>\n" +
+            "    <div class='tptr-box-button'><button class='tptr-snap-photo'>Tirar Foto</button></div>\n" +
+            "    <canvas class='tptr-source-canvas' id='canvas'></canvas>\n" +
             "    <div class='tptr-box-part'> \n" +
-            "        <canvas class='tptr-source-canvas' id='canvas'></canvas>\n" +
             "        <img class='tptr-source-preview'>\n" +
             "        <button class=\"tptr-choose\">salvar</button>\n" +
             "    </div>\n" +
@@ -264,48 +266,65 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
 
 
         this.close = function() {
-
-            this.stream.getTracks()[0].stop();
+            cameraStream.getTracks()[0].stop();
             $('.tptr-webcam').hide();
             $('.tptr-picker').show();
         };
+
+        var that = this;
+        $('body').on('click', '.tptr-webcam .tptr-choose', function() {
+            that.setImageData( $('.tptr-source-preview').attr('src'), true);
+            that.close();
+        });
+
         this.open = function() {
             $('.tptr-picker').hide();
             $('.tptr-webcam').show();
 
             // Grab elements, create settings, etc.
             var $video = $('.tptr-source-video');
+            video = $video[0];
             var $canvas = $('.tptr-source-canvas');
 
             var canvas = document.getElementById('canvas');
             var context = canvas.getContext('2d');
             var that = this;
+            video.addEventListener('canplay', function(ev){
+                if (!that.streaming) {
+                    height = video.videoHeight / (video.videoWidth/ that.width);
+                    video.setAttribute('width', that.width);
+                    video.setAttribute('height', height);
+                    canvas.setAttribute('width', that.width);
+                    canvas.setAttribute('height', height);
+                    $('.tptr-source-preview').attr('width', that.width);
+                    $('.tptr-source-preview').attr('height', height);
+                    that.height = height;
+                    console.log(that.streaming);
+                    that.streaming = true;
+                }
+            }, false);
 
             // Get access to the camera!
             if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 // Not adding `{ audio: true }` since we only want video now
                 navigator.mediaDevices.getUserMedia({ video: true }).then(function(stream) {
-                    that.stream = stream;
-                    $video.attr('src', window.URL.createObjectURL(stream));
-                    $video[0].play();
+                    cameraStream = stream;
+                    video.srcObject = stream;
+                    video.play();
                 }).catch(function (e) {
                     alert("Houve um erro ao iniciar, contate o suporte");
                 });
 
                 $(".tptr-snap-photo").click(function() {
-                    context.drawImage($video[0], 0, 0, canvas.width, canvas.height);
+                    var context = canvas.getContext('2d');
+                    canvas.width = that.width;
+                    canvas.height = that.height;
+                    context.drawImage(video, 0, 0, that.width, that.height);
+
                     var data = canvas.toDataURL('image/png');
                     $('.tptr-source-preview').attr('src', data);
-
                 });
             }
-
-
-            $('.tptr-webcam .tptr-choose').click(function() {
-                that.setImageData( $('.tptr-source-preview').attr('src'), true);
-                //that.stream
-                that.close();
-            });
         };
 
 
@@ -330,7 +349,7 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
                 return this.image_url_prefix + 'avatar.jpg';
             },
             templates: {
-                widget: '<div class="tptr-widget"><span class="tptr-widget-pick">pick</span></div>',
+                widget: '<div class="tptr-widget"><span class="tptr-widget-pick">Selecionar</span></div>',
                 overlay: '<div class="tptr-container" style="display: none"><div class="tptr-overlay"></div></div>',
                 picker: '<div class="tptr-picker"><div class="tptr-close"></div><div class="tptr-image-holder tptr-box-part"><div class="tptr-big-image"> </div></div><div class="tptr-sources-holder tptr-box-part"><div class="tptr-sources"></div><button class="tptr-save">Save</button></div></div>',
                 source: '<div class="tptr-source"><div class="tptr-source-part tptr-source-icon"><img /></div><div class="tptr-source-part tptr-source-content"></div><div class="tptr-source-part tptr-source-image-preview"></div><button class="tptr-source-part tptr-source-pick">Pick</button></div>'
@@ -438,7 +457,7 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
         _setPickedImage: function(source) {
             if (!source.image_data) return;
             if(this.options.crop === true){
-                this._initCrop(this.$containerEl.find('.tptr-image-holder .tptr-big-image'), source.image_data);
+                this._initCrop(this.$containerEl.find('.tptr-big-image'), source.image_data);
             } else {
                 this.$containerEl.find('.tptr-image-holder .tptr-big-image')
                     .addClass('tptr-big-image-without-crop')
@@ -456,13 +475,16 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
                                 ? this.sources[this.selectedSource].image_data
                                 : this._getImageFromPathOrFunction(this.options.default_image, this.options);
 
-            if(this.options.crop === true && this.selectedSource) {
-                this._initCrop($picker.find('.tptr-big-image'), imageData);
-            } else {
-                $picker.find('.tptr-big-image')
-                    .addClass('tptr-big-image-without-crop')
-                    .css('background-image', 'url(' + imageData + ')');
-            }
+            $picker.find('.tptr-big-image')
+                .addClass('tptr-big-image-without-crop')
+                .css('background-image', 'url(' + imageData + ')');
+            // if(this.options.crop === true && !this.selectedSource) {
+            //     this._initCrop($picker.find('.tptr-big-image'), imageData);
+            // } else {
+            //     $picker.find('.tptr-big-image')
+            //         .addClass('tptr-big-image-without-crop')
+            //         .css('background-image', 'url(' + imageData + ')');
+            // }
 
             // Sort sources and append
             var $sourcesHolder = $picker.find('.tptr-sources');
@@ -550,7 +572,6 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
                 var that = this;
 
                 this.cropObject.croppie('result', 'base64').then(function(imageData) {
-
                     return imageData;
                     // html is div (overflow hidden)
                     // with img positioned inside.
@@ -560,6 +581,8 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
                         that.$tptrEl.find('.tptr-widget').css('background-image', 'url(' + imgData + ')');
                         // var imgData = this.sources[this.selectedSource].image_data;
                     }
+                    that.cropObject.croppie('destroy');
+                    that.cropObject = null;
                     that._closePicker();
                 });
             } else {
@@ -573,12 +596,16 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
         },
         _initCrop: function($picker, imageData) {
             $picker.removeClass('tptr-big-image-without-crop').css('background-image', '');
+            var options = {
+                url: imageData,
+                viewport: { width: 177, height: 177, type: 'square' }
+            };
+
             if(this.cropObject !== null) {
-                this.cropObject.croppie('destroy');
+                this.cropObject.croppie('bind', options);
+            } else {
+                this.cropObject = $picker.croppie(options);
             }
-            this.cropObject = $picker.croppie({
-                url: imageData
-            });
         }
 
     };

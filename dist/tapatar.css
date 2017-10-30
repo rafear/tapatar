@@ -3,11 +3,8 @@
 }
 .tptr-widget {
   font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
-  height: 70px;
-  width: 70px;
-  border-radius: 35px;
-  -webkit-border-radius: 35px;
-  -moz-border-radius: 35px;
+  height: 177px;
+  width: 177px;
   background-size: cover;
   display: block;
   overflow: hidden;
@@ -23,7 +20,6 @@
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 0 0 6px;
   font-weight: 300;
 }
 .tptr-container .tptr-box-part {
@@ -205,6 +201,7 @@
   padding-top: 100%;
   background-size: cover;
   display: block;
+  background-position: center;
 }
 .tptr-container .tptr-overlay .tptr-picker .tptr-sources-holder button,
 .tptr-container .tptr-overlay .tptr-window .tptr-sources-holder button {
@@ -249,19 +246,18 @@
   box-sizing: border-box;
 }
 .tptr-container .tptr-overlay .tptr-webcam .tptr-source-video {
-  width: 300px;
-  height: auto;
   object-fit: cover;
 }
 .tptr-container .tptr-overlay .tptr-webcam .tptr-source-canvas {
   display: none;
-  width: 300px;
-  height: 225px;
 }
 .tptr-container .tptr-overlay .tptr-webcam .tptr-source-preview {
   border: 1px solid #999;
-  width: 300px;
-  height: 225px;
+}
+.tptr-container .tptr-overlay .tptr-webcam .tptr-box-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .tptr-container .tptr-overlay .tptr-webcam button {
   background-color: #37d1b3;

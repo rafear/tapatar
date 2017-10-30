@@ -17,7 +17,7 @@
                 return this.image_url_prefix + 'avatar.jpg';
             },
             templates: {
-                widget: '<div class="tptr-widget"><span class="tptr-widget-pick">pick</span></div>',
+                widget: '<div class="tptr-widget"><span class="tptr-widget-pick">Selecionar</span></div>',
                 overlay: '<div class="tptr-container" style="display: none"><div class="tptr-overlay"></div></div>',
                 picker: '<div class="tptr-picker"><div class="tptr-close"></div><div class="tptr-image-holder tptr-box-part"><div class="tptr-big-image"> </div></div><div class="tptr-sources-holder tptr-box-part"><div class="tptr-sources"></div><button class="tptr-save">Save</button></div></div>',
                 source: '<div class="tptr-source"><div class="tptr-source-part tptr-source-icon"><img /></div><div class="tptr-source-part tptr-source-content"></div><div class="tptr-source-part tptr-source-image-preview"></div><button class="tptr-source-part tptr-source-pick">Pick</button></div>'
@@ -125,7 +125,7 @@
         _setPickedImage: function(source) {
             if (!source.image_data) return;
             if(this.options.crop === true){
-                this._initCrop(this.$containerEl.find('.tptr-image-holder .tptr-big-image'), source.image_data);
+                this._initCrop(this.$containerEl.find('.tptr-big-image'), source.image_data);
             } else {
                 this.$containerEl.find('.tptr-image-holder .tptr-big-image')
                     .addClass('tptr-big-image-without-crop')
@@ -143,13 +143,16 @@
                                 ? this.sources[this.selectedSource].image_data
                                 : this._getImageFromPathOrFunction(this.options.default_image, this.options);
 
-            if(this.options.crop === true && this.selectedSource) {
-                this._initCrop($picker.find('.tptr-big-image'), imageData);
-            } else {
-                $picker.find('.tptr-big-image')
-                    .addClass('tptr-big-image-without-crop')
-                    .css('background-image', 'url(' + imageData + ')');
-            }
+            $picker.find('.tptr-big-image')
+                .addClass('tptr-big-image-without-crop')
+                .css('background-image', 'url(' + imageData + ')');
+            // if(this.options.crop === true && !this.selectedSource) {
+            //     this._initCrop($picker.find('.tptr-big-image'), imageData);
+            // } else {
+            //     $picker.find('.tptr-big-image')
+            //         .addClass('tptr-big-image-without-crop')
+            //         .css('background-image', 'url(' + imageData + ')');
+            // }
 
             // Sort sources and append
             var $sourcesHolder = $picker.find('.tptr-sources');
@@ -237,7 +240,6 @@
                 var that = this;
 
                 this.cropObject.croppie('result', 'base64').then(function(imageData) {
-
                     return imageData;
                     // html is div (overflow hidden)
                     // with img positioned inside.
@@ -247,6 +249,8 @@
                         that.$tptrEl.find('.tptr-widget').css('background-image', 'url(' + imgData + ')');
                         // var imgData = this.sources[this.selectedSource].image_data;
                     }
+                    that.cropObject.croppie('destroy');
+                    that.cropObject = null;
                     that._closePicker();
                 });
             } else {
@@ -260,12 +264,16 @@
         },
         _initCrop: function($picker, imageData) {
             $picker.removeClass('tptr-big-image-without-crop').css('background-image', '');
+            var options = {
+                url: imageData,
+                viewport: { width: 177, height: 177, type: 'square' }
+            };
+
             if(this.cropObject !== null) {
-                this.cropObject.croppie('destroy');
+                this.cropObject.croppie('bind', options);
+            } else {
+                this.cropObject = $picker.croppie(options);
             }
-            this.cropObject = $picker.croppie({
-                url: imageData
-            });
         }
 
     };
