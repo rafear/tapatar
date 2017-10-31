@@ -1,4 +1,4 @@
-https://davidwalsh.name/browser-camera
+// https://davidwalsh.name/browser-camera
 var cameraStream;
 var Tptr = Tptr || {};
 Tptr.sources = Tptr.sources || {};
@@ -17,6 +17,7 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
         }
     },
     onAdd: function() {
+        this.hash = Math.random().toString(36).substr(2, 5)
         this.width  = 300;
         this.height = 0;
         this.layout = "<div class='tptr-window tptr-webcam' style='display: none'>\n" +
@@ -26,7 +27,7 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
             "    <canvas class='tptr-source-canvas' id='canvas'></canvas>\n" +
             "    <div class='tptr-box-part'> \n" +
             "        <img class='tptr-source-preview'>\n" +
-            "        <button class=\"tptr-choose\">salvar</button>\n" +
+            "        <button class=\"tptr-choose tptr-choose-"+this.hash+"\">salvar</button>\n" +
             "    </div>\n" +
             "</div>";
 
@@ -38,7 +39,7 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
         };
 
         var that = this;
-        $('body').on('click', '.tptr-webcam .tptr-choose', function() {
+        $('body').on('click', '.tptr-webcam .tptr-choose-'+this.hash, function() {
             that.setImageData( $('.tptr-source-preview').attr('src'), true);
             that.close();
         });
@@ -65,7 +66,6 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
                     $('.tptr-source-preview').attr('width', that.width);
                     $('.tptr-source-preview').attr('height', height);
                     that.height = height;
-                    console.log(that.streaming);
                     that.streaming = true;
                 }
             }, false);

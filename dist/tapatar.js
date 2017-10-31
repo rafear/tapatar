@@ -232,7 +232,7 @@ Tptr.sources.local = new Tptr.TapatarSource({
         self.fileInput.on('change', handleFileSelect);
     },
 });
-;https://davidwalsh.name/browser-camera
+;// https://davidwalsh.name/browser-camera
 var cameraStream;
 var Tptr = Tptr || {};
 Tptr.sources = Tptr.sources || {};
@@ -251,6 +251,7 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
         }
     },
     onAdd: function() {
+        this.hash = Math.random().toString(36).substr(2, 5)
         this.width  = 300;
         this.height = 0;
         this.layout = "<div class='tptr-window tptr-webcam' style='display: none'>\n" +
@@ -260,7 +261,7 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
             "    <canvas class='tptr-source-canvas' id='canvas'></canvas>\n" +
             "    <div class='tptr-box-part'> \n" +
             "        <img class='tptr-source-preview'>\n" +
-            "        <button class=\"tptr-choose\">salvar</button>\n" +
+            "        <button class=\"tptr-choose tptr-choose-"+this.hash+"\">salvar</button>\n" +
             "    </div>\n" +
             "</div>";
 
@@ -272,7 +273,7 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
         };
 
         var that = this;
-        $('body').on('click', '.tptr-webcam .tptr-choose', function() {
+        $('body').on('click', '.tptr-webcam .tptr-choose-'+this.hash, function() {
             that.setImageData( $('.tptr-source-preview').attr('src'), true);
             that.close();
         });
@@ -299,7 +300,6 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
                     $('.tptr-source-preview').attr('width', that.width);
                     $('.tptr-source-preview').attr('height', height);
                     that.height = height;
-                    console.log(that.streaming);
                     that.streaming = true;
                 }
             }, false);
@@ -330,7 +330,7 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
 
     }
 });
-;//http://foliotek.github.io/Croppie/#documentation
+;// http://foliotek.github.io/Croppie/#documentation
 ;(function ($, window, document, undefined ) {
     "use strict";
 
@@ -424,6 +424,12 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
             this._updateSourceUi(source);
             $(this.element).trigger('tapatar.source.image_data.set', [source]);
             if (pick === true) this.pickSource(source);
+        },
+        destroy: function() {
+            $(this.element).closest('.tptr').find('.tptr-inner').remove();
+            $(this.element).unwrap();
+            $(this.element).removeClass('tptr-file-input');
+            $.data(this.element, 'plugin_' + pluginName, false);
         },
         _registerHandlers: function() {
             var self = this;

@@ -36,7 +36,7 @@
   bottom: 0;
   right: 0;
   background-color: rgba(0, 0, 0, 0.7);
-  z-index: 101;
+  z-index: 1060;
   -webkit-align-items: center;
   -ms-flex-align: center;
   align-items: center;
@@ -252,7 +252,8 @@
   display: none;
 }
 .tptr-container .tptr-overlay .tptr-webcam .tptr-source-preview {
-  border: 1px solid #999;
+  float: right;
+  margin-bottom: 5px;
 }
 .tptr-container .tptr-overlay .tptr-webcam .tptr-box-button {
   display: flex;

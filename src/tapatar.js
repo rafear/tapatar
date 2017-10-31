@@ -1,4 +1,4 @@
-//http://foliotek.github.io/Croppie/#documentation
+// http://foliotek.github.io/Croppie/#documentation
 ;(function ($, window, document, undefined ) {
     "use strict";
 
@@ -92,6 +92,12 @@
             this._updateSourceUi(source);
             $(this.element).trigger('tapatar.source.image_data.set', [source]);
             if (pick === true) this.pickSource(source);
+        },
+        destroy: function() {
+            $(this.element).closest('.tptr').find('.tptr-inner').remove();
+            $(this.element).unwrap();
+            $(this.element).removeClass('tptr-file-input');
+            $.data(this.element, 'plugin_' + pluginName, false);
         },
         _registerHandlers: function() {
             var self = this;
