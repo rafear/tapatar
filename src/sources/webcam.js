@@ -1,5 +1,5 @@
 // https://davidwalsh.name/browser-camera
-var cameraStream;
+var cameraStream = undefined;
 var Tptr = Tptr || {};
 Tptr.sources = Tptr.sources || {};
 Tptr.sources.webcam = new Tptr.TapatarSource({
@@ -17,7 +17,7 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
         }
     },
     onAdd: function() {
-        this.hash = Math.random().toString(36).substr(2, 5)
+        this.hash = Math.random().toString(36).substr(2, 5);
         this.width  = 300;
         this.height = 0;
         this.layout = "<div class='tptr-window tptr-webcam' style='display: none'>\n" +
@@ -33,7 +33,9 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
 
 
         this.close = function() {
-            cameraStream.getTracks()[0].stop();
+            if(cameraStream != undefined) {
+                cameraStream.getTracks()[0].stop();
+            }
             $('.tptr-webcam').hide();
             $('.tptr-picker').show();
         };
@@ -78,7 +80,8 @@ Tptr.sources.webcam = new Tptr.TapatarSource({
                     video.srcObject = stream;
                     video.play();
                 }).catch(function (e) {
-                    alert("Houve um erro ao iniciar, contate o suporte");
+                    alert("Houve um erro ao iniciar, WebCam não localizada");
+                    that.close();
                 });
 
                 $(".tptr-snap-photo").click(function() {
